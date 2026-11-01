@@ -1,0 +1,53 @@
+{
+  "name": "google-sites-mcp",
+  "version": "0.3.0",
+  "description": "MCP server that lets Claude build and edit Google Sites (new Sites) by driving the editor with Playwright: text, images, layouts, embeds, maps, YouTube, Drive files, publish and more.",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "login": "node login.mjs",
+    "prepare": "tsc"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "playwright": "^1.49.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  },
+  "license": "MIT",
+  "bin": {
+    "google-sites-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "login.mjs",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "google-sites",
+    "claude",
+    "playwright",
+    "automation",
+    "no-code",
+    "website-builder"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RXDG2908/google-sites-mcp.git"
+  },
+  "homepage": "https://github.com/RXDG2908/google-sites-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/RXDG2908/google-sites-mcp/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
