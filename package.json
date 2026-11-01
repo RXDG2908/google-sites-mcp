@@ -1,6 +1,6 @@
 {
   "name": "google-sites-mcp",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "MCP server that lets Claude build and edit Google Sites (new Sites) by driving the editor with Playwright: text, images, layouts, embeds, maps, YouTube, Drive files, publish and more.",
   "type": "module",
   "main": "dist/index.js",

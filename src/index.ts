@@ -3,11 +3,12 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { getPage, closeBrowser, PROFILE_DIR } from "./browser.js";
-import { CHARACTER_LIMIT, ok, fail, SNAP_HINT, rw, ro } from "./util.js";
+import { CHARACTER_LIMIT, ok, fail, SNAP_HINT, rw, ro, typeText } from "./util.js";
 import { registerContentTools } from "./content-tools.js";
 import { registerDriveTools } from "./drive-tools.js";
+import { registerExtraTools } from "./extras.js";
 
-const server = new McpServer({ name: "google-sites-mcp-server", version: "0.2.0" });
+const server = new McpServer({ name: "google-sites-mcp-server", version: "0.4.0" });
 
 // Escape a string for use inside a double-quoted CSS attribute selector.
 const q = (s: string) => s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
@@ -154,7 +155,7 @@ server.registerTool(
         await page.locator(`[aria-label*="${t}" i], [placeholder*="${t}" i]`).first().click({ timeout: 8000 });
       }
       if (clear_first) await page.keyboard.press("Control+A");
-      await page.keyboard.type(text, { delay: 15 });
+      await typeText(page, text, 15);
       if (press_enter) await page.keyboard.press("Enter");
       return ok(`Typed ${text.length} chars${target ? ` into '${target}'` : ""}.`);
     } catch (e) {
@@ -287,6 +288,7 @@ server.registerTool(
 
 registerContentTools(server);
 registerDriveTools(server);
+registerExtraTools(server);
 
 process.on("SIGINT", async () => {
   await closeBrowser();

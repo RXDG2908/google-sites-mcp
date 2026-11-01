@@ -20,6 +20,8 @@ export async function getContext(): Promise<BrowserContext> {
     ignoreDefaultArgs: ["--enable-automation"],
     args: ["--disable-blink-features=AutomationControlled"],
   });
+  // typeText() pastes through the clipboard, so the Sites origin needs clipboard permissions.
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: "https://sites.google.com" }).catch(() => undefined);
   context.on("close", () => {
     context = null;
   });

@@ -47,6 +47,7 @@ export interface SectionInfo {
   left: number;
   right: number;
   preview: string;
+  id: string; // stable data-id of the <section>; never changes when the content of a block changes
 }
 
 export async function openInsertTab(page: Page): Promise<void> {
@@ -69,10 +70,11 @@ export async function listSections(page: Page): Promise<SectionInfo[]> {
           clone.querySelectorAll('button, [role=toolbar], [role=option], [role=listbox], [role=menu], [role=menuitem], [aria-label*="ección"], [aria-label*="ection"]').forEach((n) => n.remove());
           let kind = (clone.innerText || "").split("\n").map((t) => t.trim()).filter(Boolean).join(" | ").replace(/(Haz clic para editar el texto|Click to edit text|Lato|Negrita|Texto normal).*$/s, "").trim().slice(0, 60);
           if (e.querySelector("img") && /(Recortar imagen|Crop image|Anular recorte)/i.test(kind)) kind = "";
+          kind = kind.replace(/(Eliminar sección|Delete section)/gi, "").replace(/^[| ]+|[| ]+$/g, "");
           if (!kind) {
             kind = e.querySelector("img") ? "[image]" : e.querySelector("iframe") ? "[embed]" : e.querySelector("hr") ? "[divider]" : "[block]";
           }
-          return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, w: r.width, h: r.height, kind };
+          return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, w: r.width, h: r.height, kind, id: e.getAttribute("data-id") ?? "" };
         })
         .filter((x) => x.w > 0 && x.h > 0)
         .sort((x, y) => x.top - y.top);
@@ -89,7 +91,7 @@ export async function listSections(page: Page): Promise<SectionInfo[]> {
     prev = cur;
   }
   // The first element is the page header.
-  return prev.slice(1).map((s, i) => ({ index: i + 1, top: s.top, bottom: s.bottom, left: s.left, right: s.right, preview: s.kind }));
+  return prev.slice(1).map((s, i) => ({ index: i + 1, top: s.top, bottom: s.bottom, left: s.left, right: s.right, preview: s.kind, id: s.id }));
 }
 
 /** Scroll the page canvas so that the given viewport y of an element ends at `target`. */
@@ -215,7 +217,9 @@ export async function dialogButton(page: Page, name: RegExp): Promise<void> {
 
 /** Identity of each section: preview plus rounded height (enough to tell old from new sections). */
 export async function signature(page: Page): Promise<string[]> {
-  return (await listSections(page)).map((s) => `${s.preview}|${Math.round(s.bottom - s.top)}`);
+  // Identify sections by their stable data-id. Comparing previews breaks on blocks whose text changes by itself
+  // (e.g. the table of contents lists every heading), which made the old reorder logic drag them to the end.
+  return (await listSections(page)).map((s) => s.id || `${s.preview}|${Math.round(s.bottom - s.top)}`);
 }
 
 /**
@@ -224,13 +228,22 @@ export async function signature(page: Page): Promise<string[]> {
  */
 export async function moveNewSectionsToEnd(page: Page, before: string[]): Promise<void> {
   const after = await signature(page);
-  const added = after.length - before.length;
-  if (added <= 0) return;
-  let i = 0;
-  while (i < before.length && before[i] === after[i]) i++;
-  const trailing = after.length - (i + added);
-  if (trailing <= 0) return;
-  for (let j = 0; j < added; j++) await moveSection(page, i + 1, after.length);
+  const known = new Set(before);
+  const fresh = after.map((id, i) => (known.has(id) ? -1 : i)).filter((i) => i >= 0);
+  if (!fresh.length) return;
+  const added = fresh.length;
+  if (fresh.every((p, k) => p === after.length - added + k)) return; // already at the end
+  for (let j = 0; j < added; j++) await moveSection(page, fresh[0] + 1, after.length);
+}
+
+/** Put the section(s) created since `before` right after section `target` (0 = top). Returns how many were added. */
+export async function placeNewSectionsAt(page: Page, before: string[], target: number): Promise<number> {
+  const after = await signature(page);
+  const known = new Set(before);
+  const fresh = after.map((id, i) => (known.has(id) ? -1 : i)).filter((i) => i >= 0);
+  if (!fresh.length) return 0;
+  if (fresh[0] !== target) await moveSection(page, fresh[0] + 1, target + 1);
+  return fresh.length;
 }
 
 /** Wait for the Google picker iframe (YouTube, Drive files, Calendar) that Sites opens in docs.google.com/picker. */

@@ -10,7 +10,7 @@ Un servidor MCP que maneja el editor de Google Sites, porque Google nunca sacó 
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 ![Node 18+](https://img.shields.io/badge/node-%E2%89%A518-339933)
 ![MCP](https://img.shields.io/badge/MCP-server-blueviolet)
-![Tools](https://img.shields.io/badge/tools-29-blue)
+![Tools](https://img.shields.io/badge/tools-35-blue)
 
 [Español](#español) · [English](#english)
 

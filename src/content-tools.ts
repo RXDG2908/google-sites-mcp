@@ -3,11 +3,12 @@ import { z } from "zod";
 import fs from "node:fs";
 import type { Page } from "playwright";
 import { getPage } from "./browser.js";
-import { ok, fail, SNAP_HINT, rw, ro, del } from "./util.js";
+import { ok, fail, SNAP_HINT, rw, ro, del, typeText } from "./util.js";
+import { insertPoint } from "./state.js";
 import {
   BLOCKS, DRIVE_KINDS, LAYOUTS, TextStyle, pickFirstResult,
   clickInsertItem, dialogButton, listSections, moveSection, openInsertTab,
-  moveNewSectionsToEnd, scrollPageTop, selectLastSection, selectSection, signature, selectedSectionButton, setAlign, setTextStyle,
+  moveNewSectionsToEnd, placeNewSectionsAt, scrollPageTop, selectLastSection, selectSection, signature, selectedSectionButton, setAlign, setTextStyle,
 } from "./editor.js";
 
 export const outline = async (): Promise<string> => {
@@ -29,11 +30,15 @@ export async function closeOpenDialog(): Promise<void> {
 
 /** Select the last section (so Sites inserts after it) and remember the page layout. */
 export async function beginInsert(page: Page): Promise<string[]> {
-  await selectLastSection(page);
+  if (insertPoint.after !== null && insertPoint.after > 0) await selectSection(page, insertPoint.after);
+  else if (insertPoint.after === null) await selectLastSection(page);
   return signature(page);
 }
 
-export const fixOrder = async (page: Page, before: string[]): Promise<void> => moveNewSectionsToEnd(page, before);
+export const fixOrder = async (page: Page, before: string[]): Promise<void> => {
+  if (insertPoint.after === null) return moveNewSectionsToEnd(page, before);
+  insertPoint.after += await placeNewSectionsAt(page, before, insertPoint.after);
+};
 
 export const AT_END = "New content goes after the currently selected section; by default the last section is selected first so content is appended at the end. Use gsites_move_section to reorder afterwards.";
 
@@ -66,7 +71,7 @@ Examples: {text:"Mis proyectos", style:"heading"}, {text:"HTML\\nCSS\\nJS", list
           await page.getByRole("button", { name: list === "bullets" ? /viñetas|bulleted/i : /numerada|numbered/i }).filter({ visible: true }).first().click({ timeout: 6000 });
         }
         if (bold) await page.keyboard.press("Control+B");
-        await page.keyboard.type(text, { delay: 8 });
+        await typeText(page, text, 8);
         await page.waitForTimeout(800);
         await fixOrder(page, before);
         return ok(`Text added (${style}).\n\nPage outline:\n${await outline()}`);
@@ -128,9 +133,9 @@ Examples: {text:"Mis proyectos", style:"heading"}, {text:"HTML\\nCSS\\nJS", list
         const nameBox = page.getByRole("textbox", { name: /^(name|nombre)$/i });
         const linkBox = page.getByRole("textbox", { name: /^(link|enlace)$/i });
         await nameBox.click({ timeout: 8000 });
-        await page.keyboard.type(label, { delay: 8 });
+        await typeText(page, label, 8);
         await linkBox.click({ timeout: 8000 });
-        await page.keyboard.type(url, { delay: 8 });
+        await typeText(page, url, 8);
         if ((await linkBox.inputValue()) !== url) throw new Error("the link field did not accept the URL");
         await dialogButton(page, /^(insert|insertar)$/i);
         await page.waitForTimeout(1500);
@@ -382,7 +387,7 @@ Provide exactly one of url / html.`,
         await page.mouse.click(568, 255);
         await page.waitForTimeout(500);
         await page.keyboard.press("Control+A");
-        await page.keyboard.type(title, { delay: 10 });
+        await typeText(page, title, 10);
         await page.waitForTimeout(800);
         return ok(`Page title set to '${title}'.`);
       } catch (e) {
