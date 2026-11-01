@@ -2,17 +2,131 @@
 
 # 🌐 Google Sites MCP
 
-**Let Claude build your Google Site.**
-An MCP server that drives the Google Sites editor, because Google never shipped an API for it.
+**Deja que Claude construya tu Google Site.**
+Un servidor MCP que maneja el editor de Google Sites, porque Google nunca sacó una API para él.
+
+*Let Claude build your Google Site — an MCP server that drives the Sites editor, because Google never shipped an API for it.*
 
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 ![Node 18+](https://img.shields.io/badge/node-%E2%89%A518-339933)
 ![MCP](https://img.shields.io/badge/MCP-server-blueviolet)
 ![Tools](https://img.shields.io/badge/tools-29-blue)
 
-[English](#english) · [Español](#español)
+[Español](#español) · [English](#english)
 
 </div>
+
+---
+
+## Español
+
+Google Sites (el Sites "nuevo") **no tiene API pública**. La API antigua solo sirve para Sites *clásico* y está obsoleta.
+Este servidor resuelve ese hueco: abre un navegador real con **tu** sesión de Google y maneja el editor por ti,
+exponiendo todo como herramientas [MCP](https://modelcontextprotocol.io) que Claude (o cualquier cliente MCP) puede llamar.
+
+> Pídele: *"Crea un portafolio con un título grande, una sección Sobre mí, mis habilidades en viñetas, una foto, un mapa de mi ciudad y un botón de contacto, y publícalo."*
+> El servidor hace los clics.
+
+### Qué puedes hacer
+
+| Área | Herramientas |
+|---|---|
+| **Sitios y páginas** | `gsites_create_site` · `gsites_add_page` · `gsites_set_page_title` |
+| **Texto** | `gsites_add_text`: título / encabezado / subtítulo / pequeño, alineación, negrita, listas con viñetas y numeradas |
+| **Multimedia** | `gsites_add_image` (sube un archivo local) · `gsites_add_carousel` · `gsites_add_youtube` · `gsites_add_map` |
+| **Diseño y bloques** | `gsites_add_layout` (6 diseños de imagen + subtítulo) · `gsites_add_button` · `gsites_add_divider` · `gsites_add_block` (índice, grupo ocultable, separador, marcador) |
+| **Incrustar** | `gsites_add_embed`: cualquier URL pública **o HTML/CSS/JS propio** · `gsites_add_social_links` |
+| **Google Drive** | `gsites_add_drive_item`: Documentos, Presentaciones, Hojas, Formularios, Gráficos, Calendar |
+| **Organizar** | `gsites_list_sections` · `gsites_move_section` · `gsites_duplicate_section` · `gsites_delete_section` |
+| **Publicar** | `gsites_publish` · `gsites_unpublish` |
+| **Salidas de emergencia** | `gsites_open` · `gsites_snapshot` · `gsites_screenshot` · `gsites_get_text` · `gsites_click` · `gsites_type` · `gsites_press_key` · `gsites_close_browser` |
+
+El contenido siempre se **agrega al final de la página**: tras cada inserción el servidor revisa el orden de las secciones y lo corrige si Sites colocó el bloque en otro sitio.
+
+### Requisitos
+
+- Node.js 18 o superior
+- Microsoft Edge (por defecto) o Google Chrome (`GSITES_CHANNEL=chrome`)
+- Una cuenta de Google que pueda usar Google Sites
+- Windows es la plataforma probada; macOS y Linux deberían funcionar pero no están probados
+
+### Instalación
+
+```bash
+git clone https://github.com/RXDG2908/google-sites-mcp.git
+cd google-sites-mcp
+npm install        # también compila (script prepare)
+npm run login      # una sola vez: inicia sesión en Google en la ventana que se abre y ciérrala
+```
+
+Regístralo en Claude Code:
+
+```bash
+claude mcp add google-sites -- node /ruta/absoluta/a/google-sites-mcp/dist/index.js
+```
+
+O en la configuración de cualquier cliente MCP (Claude Desktop, etc.):
+
+```json
+{
+  "mcpServers": {
+    "google-sites": {
+      "command": "node",
+      "args": ["/ruta/absoluta/a/google-sites-mcp/dist/index.js"]
+    }
+  }
+}
+```
+
+Tu sesión de Google se guarda en `~/.google-sites-mcp-profile` (cámbialo con `GSITES_PROFILE_DIR`). No sale de tu equipo.
+
+### Variables de entorno
+
+| Variable | Valor por defecto | Significado |
+|---|---|---|
+| `GSITES_CHANNEL` | `msedge` | Navegador a controlar: `msedge`, `chrome`, o vacío para el Chromium de Playwright |
+| `GSITES_PROFILE_DIR` | `~/.google-sites-mcp-profile` | Dónde está el perfil con tu sesión iniciada |
+| `GSITES_HEADLESS` | desactivado | `1` para ocultar la ventana (Google puede bloquear el inicio de sesión sin ventana) |
+| `GSITES_DEBUG` | desactivado | `1` para ver los errores completos de Playwright |
+
+### Cómo funciona
+
+Usa etiquetas accesibles, roles ARIA y los atributos `data-value` de Google, no posiciones en pantalla, tanto en español como en inglés.
+Las secciones se arrastran por su asa de una posición a la vez y lejos de los bordes del lienzo (arrastrar cerca de un borde hace que Sites desplace la página y se pase de largo).
+
+### Probado
+
+Verificado contra el editor real con una corrida automática de punta a punta (31 comprobaciones, todas aprobadas):
+crear sitio, título de página, añadir página, texto (encabezado, negrita, viñetas, centrado), imagen, botón, divisor, diseño de 3 columnas,
+embed HTML, embed por URL, YouTube, mapa, documento de Drive, calendario, carrusel, iconos sociales, índice, grupo ocultable,
+separador, marcador, orden de inserción, duplicar, mover, borrar, publicar y despublicar.
+
+### Limitaciones — léelas
+
+- **Automatiza una interfaz web.** Google puede cambiar el editor en cualquier momento y algún selector puede romperse. Usa `gsites_snapshot` / `gsites_screenshot` + `gsites_click` / `gsites_type` como respaldo y abre un issue.
+- **No puede** cambiar temas, colores o fuentes; editar texto ya escrito; renombrar, reordenar o borrar páginas; gestionar permisos de uso compartido; editar la imagen de encabezado o el pie; listar o borrar tus sitios.
+- Los elementos de Drive insertan el **primer** resultado de la búsqueda: usa una consulta específica.
+- Las imágenes se suben desde archivos locales, no desde URL.
+- Los selectores de Presentaciones, Hojas, Formularios y Gráficos usan el mismo flujo que Documentos pero no se probaron uno a uno.
+- Un sitio y una acción a la vez; cada acción tarda unos segundos. Mover una sección lejos tarda unos 3 s por posición.
+- Solo el Google Sites **nuevo**. El clásico no está soportado.
+- No resuelve CAPTCHA ni verificación en dos pasos; inicia sesión manualmente una vez.
+- `gsites_publish` / `gsites_unpublish` cambian quién puede ver un sitio. Pregunta antes de usarlos en sitios reales.
+
+### Uso responsable
+
+Es un proyecto **no oficial**, sin relación ni respaldo de Google. Maneja el sitio web en el que ya iniciaste sesión, en tu nombre y con tu cuenta.
+Revisa los Términos de Servicio de Google para tu tipo de cuenta antes de usar automatización, y no lo uses para crear sitios en masa ni para saltarte restricciones.
+Tú eres responsable de lo que haga con tu cuenta.
+
+### Contribuir
+
+Los issues y PR son bienvenidos, sobre todo: arreglos de selectores cuando Google cambie la interfaz, otros idiomas de la interfaz,
+reportes de macOS/Linux y los selectores sin probar. Ejecuta `npm run build` antes de enviar un PR.
+
+### Licencia
+
+[MIT](LICENSE)
 
 ---
 
@@ -129,117 +243,5 @@ Issues and PRs are welcome — especially: selector fixes after Google UI change
 and the untested pickers. Run `npm run build` before sending a PR.
 
 ### License
-
-[MIT](LICENSE)
-
----
-
-## Español
-
-Google Sites (el Sites "nuevo") **no tiene API pública**. La API antigua solo sirve para Sites *clásico* y está obsoleta.
-Este servidor resuelve ese hueco: abre un navegador real con **tu** sesión de Google y maneja el editor por ti,
-exponiendo todo como herramientas [MCP](https://modelcontextprotocol.io) que Claude (o cualquier cliente MCP) puede llamar.
-
-> Pídele: *"Crea un portafolio con un título grande, una sección Sobre mí, mis habilidades en viñetas, una foto, un mapa de mi ciudad y un botón de contacto, y publícalo."*
-> El servidor hace los clics.
-
-### Qué puedes hacer
-
-| Área | Herramientas |
-|---|---|
-| **Sitios y páginas** | `gsites_create_site` · `gsites_add_page` · `gsites_set_page_title` |
-| **Texto** | `gsites_add_text`: título / encabezado / subtítulo / pequeño, alineación, negrita, listas con viñetas y numeradas |
-| **Multimedia** | `gsites_add_image` (sube un archivo local) · `gsites_add_carousel` · `gsites_add_youtube` · `gsites_add_map` |
-| **Diseño y bloques** | `gsites_add_layout` (6 diseños de imagen + subtítulo) · `gsites_add_button` · `gsites_add_divider` · `gsites_add_block` (índice, grupo ocultable, separador, marcador) |
-| **Incrustar** | `gsites_add_embed`: cualquier URL pública **o HTML/CSS/JS propio** · `gsites_add_social_links` |
-| **Google Drive** | `gsites_add_drive_item`: Documentos, Presentaciones, Hojas, Formularios, Gráficos, Calendar |
-| **Organizar** | `gsites_list_sections` · `gsites_move_section` · `gsites_duplicate_section` · `gsites_delete_section` |
-| **Publicar** | `gsites_publish` · `gsites_unpublish` |
-| **Salidas de emergencia** | `gsites_open` · `gsites_snapshot` · `gsites_screenshot` · `gsites_get_text` · `gsites_click` · `gsites_type` · `gsites_press_key` · `gsites_close_browser` |
-
-El contenido siempre se **agrega al final de la página**: tras cada inserción el servidor revisa el orden de las secciones y lo corrige si Sites colocó el bloque en otro sitio.
-
-### Requisitos
-
-- Node.js 18 o superior
-- Microsoft Edge (por defecto) o Google Chrome (`GSITES_CHANNEL=chrome`)
-- Una cuenta de Google que pueda usar Google Sites
-- Windows es la plataforma probada; macOS y Linux deberían funcionar pero no están probados
-
-### Instalación
-
-```bash
-git clone https://github.com/RXDG2908/google-sites-mcp.git
-cd google-sites-mcp
-npm install        # también compila (script prepare)
-npm run login      # una sola vez: inicia sesión en Google en la ventana que se abre y ciérrala
-```
-
-Regístralo en Claude Code:
-
-```bash
-claude mcp add google-sites -- node /ruta/absoluta/a/google-sites-mcp/dist/index.js
-```
-
-O en la configuración de cualquier cliente MCP (Claude Desktop, etc.):
-
-```json
-{
-  "mcpServers": {
-    "google-sites": {
-      "command": "node",
-      "args": ["/ruta/absoluta/a/google-sites-mcp/dist/index.js"]
-    }
-  }
-}
-```
-
-Tu sesión de Google se guarda en `~/.google-sites-mcp-profile` (cámbialo con `GSITES_PROFILE_DIR`). No sale de tu equipo.
-
-### Variables de entorno
-
-| Variable | Valor por defecto | Significado |
-|---|---|---|
-| `GSITES_CHANNEL` | `msedge` | Navegador a controlar: `msedge`, `chrome`, o vacío para el Chromium de Playwright |
-| `GSITES_PROFILE_DIR` | `~/.google-sites-mcp-profile` | Dónde está el perfil con tu sesión iniciada |
-| `GSITES_HEADLESS` | desactivado | `1` para ocultar la ventana (Google puede bloquear el inicio de sesión sin ventana) |
-| `GSITES_DEBUG` | desactivado | `1` para ver los errores completos de Playwright |
-
-### Cómo funciona
-
-Usa etiquetas accesibles, roles ARIA y los atributos `data-value` de Google, no posiciones en pantalla, tanto en español como en inglés.
-Las secciones se arrastran por su asa de una posición a la vez y lejos de los bordes del lienzo (arrastrar cerca de un borde hace que Sites desplace la página y se pase de largo).
-
-### Probado
-
-Verificado contra el editor real con una corrida automática de punta a punta (31 comprobaciones, todas aprobadas):
-crear sitio, título de página, añadir página, texto (encabezado, negrita, viñetas, centrado), imagen, botón, divisor, diseño de 3 columnas,
-embed HTML, embed por URL, YouTube, mapa, documento de Drive, calendario, carrusel, iconos sociales, índice, grupo ocultable,
-separador, marcador, orden de inserción, duplicar, mover, borrar, publicar y despublicar.
-
-### Limitaciones — léelas
-
-- **Automatiza una interfaz web.** Google puede cambiar el editor en cualquier momento y algún selector puede romperse. Usa `gsites_snapshot` / `gsites_screenshot` + `gsites_click` / `gsites_type` como respaldo y abre un issue.
-- **No puede** cambiar temas, colores o fuentes; editar texto ya escrito; renombrar, reordenar o borrar páginas; gestionar permisos de uso compartido; editar la imagen de encabezado o el pie; listar o borrar tus sitios.
-- Los elementos de Drive insertan el **primer** resultado de la búsqueda: usa una consulta específica.
-- Las imágenes se suben desde archivos locales, no desde URL.
-- Los selectores de Presentaciones, Hojas, Formularios y Gráficos usan el mismo flujo que Documentos pero no se probaron uno a uno.
-- Un sitio y una acción a la vez; cada acción tarda unos segundos. Mover una sección lejos tarda unos 3 s por posición.
-- Solo el Google Sites **nuevo**. El clásico no está soportado.
-- No resuelve CAPTCHA ni verificación en dos pasos; inicia sesión manualmente una vez.
-- `gsites_publish` / `gsites_unpublish` cambian quién puede ver un sitio. Pregunta antes de usarlos en sitios reales.
-
-### Uso responsable
-
-Es un proyecto **no oficial**, sin relación ni respaldo de Google. Maneja el sitio web en el que ya iniciaste sesión, en tu nombre y con tu cuenta.
-Revisa los Términos de Servicio de Google para tu tipo de cuenta antes de usar automatización, y no lo uses para crear sitios en masa ni para saltarte restricciones.
-Tú eres responsable de lo que haga con tu cuenta.
-
-### Contribuir
-
-Los issues y PR son bienvenidos, sobre todo: arreglos de selectores cuando Google cambie la interfaz, otros idiomas de la interfaz,
-reportes de macOS/Linux y los selectores sin probar. Ejecuta `npm run build` antes de enviar un PR.
-
-### Licencia
 
 [MIT](LICENSE)
