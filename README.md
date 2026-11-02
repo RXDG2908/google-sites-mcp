@@ -36,9 +36,10 @@ exponiendo todo como herramientas [MCP](https://modelcontextprotocol.io) que Cla
 | **Multimedia** | `gsites_add_image` (sube un archivo local) · `gsites_add_carousel` · `gsites_add_youtube` · `gsites_add_map` |
 | **Diseño y bloques** | `gsites_add_layout` (6 diseños de imagen + subtítulo) · `gsites_add_button` · `gsites_add_divider` · `gsites_add_block` (índice, grupo ocultable, separador, marcador) |
 | **Incrustar** | `gsites_add_embed`: cualquier URL pública **o HTML/CSS/JS propio** · `gsites_add_social_links` |
-| **Google Drive** | `gsites_add_drive_item`: Documentos, Presentaciones, Hojas, Formularios, Gráficos, Calendar |
-| **Organizar** | `gsites_list_sections` · `gsites_move_section` · `gsites_duplicate_section` · `gsites_delete_section` |
+| **Google Drive** | `gsites_add_drive_item`: Documentos, Presentaciones, Hojas, Formularios, Gráficos, Calendar · `gsites_upload_to_drive` + `gsites_add_drive_file` (sube un archivo local y lo incrusta; no cambia permisos salvo que lo pidas) |
+| **Organizar** | `gsites_list_sections` · `gsites_move_section` · `gsites_duplicate_section` · `gsites_delete_section` · `gsites_resize_block` (redimensiona imágenes/embeds) · `gsites_set_insert_point` (*experimental*) |
 | **Publicar** | `gsites_publish` · `gsites_unpublish` |
+| **Navegar** | `gsites_open_site` · `gsites_open_page` (por nombre) |
 | **Salidas de emergencia** | `gsites_open` · `gsites_snapshot` · `gsites_screenshot` · `gsites_get_text` · `gsites_click` · `gsites_type` · `gsites_press_key` · `gsites_close_browser` |
 
 El contenido siempre se **agrega al final de la página**: tras cada inserción el servidor revisa el orden de las secciones y lo corrige si Sites colocó el bloque en otro sitio.
@@ -148,9 +149,10 @@ exposing everything as [MCP](https://modelcontextprotocol.io) tools that Claude 
 | **Media** | `gsites_add_image` (upload a local file) · `gsites_add_carousel` · `gsites_add_youtube` · `gsites_add_map` |
 | **Layout & blocks** | `gsites_add_layout` (6 image + caption layouts) · `gsites_add_button` · `gsites_add_divider` · `gsites_add_block` (table of contents, collapsible group, spacer, placeholder) |
 | **Embeds** | `gsites_add_embed` — any public URL **or raw HTML/CSS/JS** · `gsites_add_social_links` |
-| **Google Drive** | `gsites_add_drive_item` — Docs, Slides, Sheets, Forms, Charts, Calendar |
-| **Organize** | `gsites_list_sections` · `gsites_move_section` · `gsites_duplicate_section` · `gsites_delete_section` |
+| **Google Drive** | `gsites_add_drive_item` — Docs, Slides, Sheets, Forms, Charts, Calendar · `gsites_upload_to_drive` + `gsites_add_drive_file` (upload a local file and embed it; sharing is never changed unless you ask) |
+| **Organize** | `gsites_list_sections` · `gsites_move_section` · `gsites_duplicate_section` · `gsites_delete_section` · `gsites_resize_block` (resize images/embeds) · `gsites_set_insert_point` (*experimental*) |
 | **Publish** | `gsites_publish` · `gsites_unpublish` |
+| **Navigate** | `gsites_open_site` · `gsites_open_page` (by name) |
 | **Escape hatches** | `gsites_open` · `gsites_snapshot` · `gsites_screenshot` · `gsites_get_text` · `gsites_click` · `gsites_type` · `gsites_press_key` · `gsites_close_browser` |
 
 Content is always **appended at the end of the page**: after every insert the server checks the section order and fixes it if Sites put the block somewhere else.
